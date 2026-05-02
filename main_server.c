@@ -18,33 +18,87 @@ void error(const char *msg)
 
 typedef struct _USR {
 	int clisockfd;		// socket file descriptor
+    char username[50];
+    char ip[INET_ADDRSTRLEN];
 	struct _USR* next;	// for linked list queue
 } USR;
 
 USR *head = NULL;
 USR *tail = NULL;
 
-void add_tail(int newclisockfd)
+USR* find_user(int sockfd)
 {
-	if (head == NULL) {
-		head = (USR*) malloc(sizeof(USR));
-		head->clisockfd = newclisockfd;
-		head->next = NULL;
-		tail = head;
-	} else {
-		tail->next = (USR*) malloc(sizeof(USR));
-		tail->next->clisockfd = newclisockfd;
-		tail->next->next = NULL;
-		tail = tail->next;
-	}
+    USR* cur = head;
+
+    while (cur != NULL) {
+        if (cur->clisockfd == sockfd) {
+            return cur;
+        }
+        cur = cur->next;
+    }
+    return NULL;
+}
+
+void add_tail(int newclisockfd, char* username, char* ip)
+{
+	USR* newUser = (USR*) malloc(sizeof(USR));
+
+    newUser->clisockfd = newclisockfd;
+
+    strcpy(newUser->username, username);
+    strcpy(newUser->ip, ip);
+
+    newUser->next = NULL;
+
+    if (head == NULL) {
+        head = newUser;
+        tail = newUser;
+    } else {
+        tail->next = newUser;
+        tail = newUser;
+    }
+}
+
+void remove_user(int sockfd)
+{
+    USR* cur = head;
+    USR* prev = NULL;
+
+    while (cur != NULL) {
+        if (cur->clisockfd == sockfd) {
+            if (prev == NULL) {
+                head = cur->next;
+            } else {
+                prev->next = cur->next;
+            }
+            if (cur == tail) {
+                tail = prev;
+            }
+            free(cur);
+            return;
+        }
+        prev = cur;
+        cur = cur->next;
+    }
+}
+
+void broadcast_message(char* message) 
+{
+    USR* cur = head;
+
+    while (cur != NULL) {
+        send(cur->clisockfd, message, strlen(message), 0);
+        cur = cur->next;
+    }
 }
 
 void broadcast(int fromfd, char* message)
 {
-	// figure out sender address
-	struct sockaddr_in cliaddr;
-	socklen_t clen = sizeof(cliaddr);
-	if (getpeername(fromfd, (struct sockaddr*)&cliaddr, &clen) < 0) error("ERROR Unknown sender!");
+	USR* sender = find_user(fromfd);
+
+    if (sender == NULL) {
+        return;
+    }
 
 	// traverse through all connected clients
 	USR* cur = head;
@@ -54,7 +108,7 @@ void broadcast(int fromfd, char* message)
 			char buffer[512];
 
 			// prepare message
-			sprintf(buffer, "[%s]:%s", inet_ntoa(cliaddr.sin_addr), message);
+			sprintf(buffer, "[%s]:%s", sender->username, message);
 			int nmsg = strlen(buffer);
 
 			// send!
@@ -85,6 +139,7 @@ void* thread_main(void* args)
 	int nsen, nrcv;
 
 	nrcv = recv(clisockfd, buffer, 255, 0);
+    buffer[nrcv] = '\0';
 	if (nrcv < 0) error("ERROR recv() failed");
 
 	while (nrcv > 0) {
@@ -92,8 +147,18 @@ void* thread_main(void* args)
 		broadcast(clisockfd, buffer);
 
 		nrcv = recv(clisockfd, buffer, 255, 0);
-		if (nrcv < 0) error("ERROR recv() failed");
+		if (nrcv < 0) buffer[nrcv] = '\0';
 	}
+
+    USR* user = find_user(clisockfd);
+
+    if (user != NULL) {
+        char leaveMsg[256];
+        sprintf(leaveMsg, "%s left", user->username);
+        broadcast_message(leaveMsg);
+    }
+    
+    remove_user(clisockfd);
 
 	close(clisockfd);
 	//-------------------------------
@@ -127,8 +192,25 @@ int main(int argc, char *argv[])
 			(struct sockaddr *) &cli_addr, &clen);
 		if (newsockfd < 0) error("ERROR on accept");
 
-		printf("Connected: %s\n", inet_ntoa(cli_addr.sin_addr));
-		add_tail(newsockfd); // add this new client to the client list
+        char username[50];
+
+        memset(username, 0, sizeof(username));
+
+        int n = recv(newsockfd, username, sizeof(username) -1, 0);
+
+        if (n <= 0) {
+            close(newsockfd);
+            continue;
+        }
+
+        username[n] = '\0';
+
+		printf("%s connected: %s\n", username, inet_ntoa(cli_addr.sin_addr));
+		add_tail(newsockfd, username, inet_ntoa(cli_addr.sin_addr)); // add this new client to the client list
+
+        char joinMsg[256];
+        sprintf(joinMsg, "%s joined", username);
+        broadcast_message(joinMsg);
 
 		// prepare ThreadArgs structure to pass client socket
 		ThreadArgs* args = (ThreadArgs*) malloc(sizeof(ThreadArgs));
@@ -139,6 +221,9 @@ int main(int argc, char *argv[])
 		pthread_t tid;
 		if (pthread_create(&tid, NULL, thread_main, (void*) args) != 0) error("ERROR creating a new thread");
 	}
+
+	return 0; 
+}
 
 	return 0; 
 }
