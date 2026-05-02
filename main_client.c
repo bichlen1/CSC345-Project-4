@@ -93,6 +93,15 @@ int main(int argc, char *argv[])
 			(struct sockaddr *) &serv_addr, slen);
 	if (status < 0) error("ERROR connecting");
 
+    char username[50];
+
+    printf("What is your name? ");
+    fgets(username, sizeof(username), stdin);
+
+    username[strcspn(username, "\n")] = '\0';
+
+    send(sockfd, username, strlen(username), 0);
+
 	pthread_t tid1;
 	pthread_t tid2;
 
