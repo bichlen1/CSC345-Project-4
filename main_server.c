@@ -82,12 +82,29 @@ void remove_user(int sockfd)
     }
 }
 
-void broadcast_message(char* message) 
+void print_users()
+{
+    USR* cur = head;
+
+    if (cur == NULL) {
+        printf("No users connected.\n");
+    }
+
+    while (cur != NULL) {
+        printf("%s (%s) connected\n", cur->username, cur->ip);
+        cur = cur->next;
+    }
+}
+
+void broadcast_message(int exclude_fd, char* message) 
 {
     USR* cur = head;
 
     while (cur != NULL) {
-        send(cur->clisockfd, message, strlen(message), 0);
+
+        if (cur->clisockfd != exclude_fd) {
+            send(cur->clisockfd, message, strlen(message), 0);
+        }
         cur = cur->next;
     }
 }
@@ -136,18 +153,18 @@ void* thread_main(void* args)
 	//-------------------------------
 	// Now, we receive/send messages
 	char buffer[256];
-	int nsen, nrcv;
+	int  nrcv;
 
-	nrcv = recv(clisockfd, buffer, 255, 0);
-    buffer[nrcv] = '\0';
-	if (nrcv < 0) error("ERROR recv() failed");
-
-	while (nrcv > 0) {
-		// we send the message to everyone except the sender
-		broadcast(clisockfd, buffer);
-
+	while (1) {
 		nrcv = recv(clisockfd, buffer, 255, 0);
-		if (nrcv < 0) buffer[nrcv] = '\0';
+
+		if (nrcv < 0) {
+            break;
+        }
+
+        buffer[nrcv] = '\0';
+        // we send the message to everyone except the sender
+		broadcast(clisockfd, buffer);
 	}
 
     USR* user = find_user(clisockfd);
@@ -155,13 +172,13 @@ void* thread_main(void* args)
     if (user != NULL) {
         char leaveMsg[256];
         sprintf(leaveMsg, "%s left", user->username);
-        broadcast_message(leaveMsg);
+        broadcast_message(clisockfd, leaveMsg);
     }
     
     remove_user(clisockfd);
+    print_users();
 
 	close(clisockfd);
-	//-------------------------------
 
 	return NULL;
 }
@@ -207,10 +224,11 @@ int main(int argc, char *argv[])
 
 		printf("%s connected: %s\n", username, inet_ntoa(cli_addr.sin_addr));
 		add_tail(newsockfd, username, inet_ntoa(cli_addr.sin_addr)); // add this new client to the client list
+        print_users();
 
         char joinMsg[256];
         sprintf(joinMsg, "%s joined", username);
-        broadcast_message(joinMsg);
+        broadcast_message(newsockfd, joinMsg);
 
 		// prepare ThreadArgs structure to pass client socket
 		ThreadArgs* args = (ThreadArgs*) malloc(sizeof(ThreadArgs));
@@ -221,9 +239,6 @@ int main(int argc, char *argv[])
 		pthread_t tid;
 		if (pthread_create(&tid, NULL, thread_main, (void*) args) != 0) error("ERROR creating a new thread");
 	}
-
-	return 0; 
-}
 
 	return 0; 
 }
