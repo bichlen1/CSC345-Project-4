@@ -10,6 +10,7 @@
 #include <pthread.h>
 
 #define PORT_NUM 1004
+#define RESET   "\033[0m"
 
 void error(const char *msg)
 {
@@ -20,6 +21,24 @@ void error(const char *msg)
 typedef struct _ThreadArgs {
 	int clisockfd;
 } ThreadArgs;
+
+char* color_assignment(char* username)
+{
+    static char* colors[] = {
+        "\033[31m",     // red
+        "\033[32m",     // green
+        "\033[33m",     // yellow
+        "\033[34m"      // blue
+    };
+
+    int sum = 0;
+
+    for (int i = 0; username[i] != '\0'; i++) {
+        sum += username[i];
+    }
+
+    return colors[sum % 4];
+}
 
 void* thread_main_recv(void* args)
 {
@@ -32,15 +51,17 @@ void* thread_main_recv(void* args)
 	char buffer[512];
 	int n;
 
-	n = recv(sockfd, buffer, 512, 0);
-	while (n > 0) {
-		memset(buffer, 0, 512);
-		n = recv(sockfd, buffer, 512, 0);
-		if (n < 0) error("ERROR recv() failed");
+	while ((n = recv(sockfd, buffer, 512, 0)) > 0) {
+		buffer[n] = '\0';
 
-		printf("\n%s\n", buffer);
+		char username[50];
+
+        if (sscanf(buffer, "[%49[^]]", username) == 1) {
+            printf("%s%s%s\n", color_assignment(username), buffer, RESET);
+        } else {
+            printf("%s\n", buffer);
+        }
 	}
-
 	return NULL;
 }
 
