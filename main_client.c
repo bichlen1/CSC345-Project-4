@@ -9,9 +9,6 @@
 #include <netdb.h> 
 #include <pthread.h>
 
-<<<<<<< HEAD
-#define PORT_NUM 8080
-=======
 #define PORT_NUM 1004
 >>>>>>> 21813196531fef80faa404a9cdb9ae2b8b41c683
 #define RESET   "\033[0m"
