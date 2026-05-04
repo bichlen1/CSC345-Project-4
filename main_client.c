@@ -9,7 +9,11 @@
 #include <netdb.h> 
 #include <pthread.h>
 
+<<<<<<< HEAD
 #define PORT_NUM 8080
+=======
+#define PORT_NUM 1004
+>>>>>>> 21813196531fef80faa404a9cdb9ae2b8b41c683
 #define RESET   "\033[0m"
 
 void error(const char *msg)
@@ -53,6 +57,7 @@ void* thread_main_recv(void* args)
 
 	while ((n = recv(sockfd, buffer, 512, 0)) > 0) {
 		buffer[n] = '\0';
+<<<<<<< HEAD
 		char username[50];
 
 		sscanf(buffer, "%49s", username);
@@ -70,6 +75,16 @@ void* thread_main_recv(void* args)
         // } else {
         //     printf("%s\n", buffer);
         // }
+=======
+
+		char username[50];
+
+        if (sscanf(buffer, "[%49[^]]", username) == 1) {
+            printf("%s%s%s\n", color_assignment(username), buffer, RESET);
+        } else {
+            printf("%s\n", buffer);
+        }
+>>>>>>> 21813196531fef80faa404a9cdb9ae2b8b41c683
 	}
 	return NULL;
 }
@@ -105,11 +120,15 @@ void* thread_main_send(void* args)
 
 int main(int argc, char *argv[])
 {
+<<<<<<< HEAD
 
 	printf("CLIENT RUNNING\n");	//test
 	fflush(stdout); //test
 
 	if (argc < 2) error("Please specify hostname");
+=======
+	if (argc < 2) error("Please speicify hostname");
+>>>>>>> 21813196531fef80faa404a9cdb9ae2b8b41c683
 
 	int sockfd = socket(AF_INET, SOCK_STREAM, 0);
 	if (sockfd < 0) error("ERROR opening socket");
@@ -130,12 +149,17 @@ int main(int argc, char *argv[])
     char username[50];
 
     printf("What is your name? ");
+<<<<<<< HEAD
 	
 	fflush(stdout);	//test
 
     fgets(username, sizeof(username), stdin);
 
 
+=======
+    fgets(username, sizeof(username), stdin);
+
+>>>>>>> 21813196531fef80faa404a9cdb9ae2b8b41c683
     username[strcspn(username, "\n")] = '\0';
 
     send(sockfd, username, strlen(username), 0);

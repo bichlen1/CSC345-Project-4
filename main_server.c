@@ -8,7 +8,11 @@
 #include <arpa/inet.h>
 #include <pthread.h>
 
+<<<<<<< HEAD
 #define PORT_NUM 8080
+=======
+#define PORT_NUM 1004
+>>>>>>> 21813196531fef80faa404a9cdb9ae2b8b41c683
 
 void error(const char *msg)
 {
@@ -158,7 +162,10 @@ void* thread_main(void* args)
 	while (1) {
 		nrcv = recv(clisockfd, buffer, 255, 0);
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> 21813196531fef80faa404a9cdb9ae2b8b41c683
 		if (nrcv < 0) {
             break;
         }
