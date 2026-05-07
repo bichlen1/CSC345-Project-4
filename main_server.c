@@ -8,7 +8,7 @@
 #include <arpa/inet.h>
 #include <pthread.h>
 
-#define PORT_NUM 1004               // Port Number
+#define PORT_NUM 44445              // Port Number
 #define MAX_ROOMS 10                // Max number of chat rooms
 
 /* User Struct */ 
@@ -129,13 +129,13 @@ void broadcast(int fromfd, int room, char* message, int is_system)
     while (cur) {
 
         /* Send only to users in the same room */
-        if (cur->clisockfd != fromfd && cur->room_id == room) {
+        if (cur->room_id == room) {
             if (is_system) {
                 /* System message */
                 snprintf(final_msg, sizeof(final_msg), "%s\n", message);
             } else if (sender) {
                 /* User message */
-                snprintf(final_msg, sizeof(final_msg), "[%s (%s)]: %s", sender->username, sender->ip, message);
+                snprintf(final_msg, sizeof(final_msg), "[%s] %s", sender->username, message);
             }
 
             send(cur->clisockfd, final_msg, strlen(final_msg), 0);
@@ -258,16 +258,9 @@ int main(int argc, char *argv[])
         recv(newsockfd, room_req, 49, 0);
         room_req[strcspn(room_req, "\n\r")] = '\0';
 
-        int rid;
-
-        /* Create or join room */
-        if (strcmp(room_req, "new") == 0) {
+        int rid = (strcmp(room_req, "new") == 0) ? ++room_count : atoi(room_req);
+        if (rid <= 0 || rid > room_count) {
             rid = ++room_count;
-        } else {
-            rid = atoi(room_req);
-            if (rid <= 0 || rid > room_count) {
-                rid = ++room_count;
-            }
         }
 
         /* Add user */
