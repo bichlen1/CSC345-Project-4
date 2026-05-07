@@ -9,8 +9,11 @@
 #include <netdb.h> 
 #include <pthread.h>
 
-#define PORT_NUM 1004           //Server port number
+#define PORT_NUM 44445          //Server port number
 #define RESET   "\033[0m"       // Reset color
+
+char my_username[50];
+int current_room_id = 0;
 
 /* Error handling */
 void error(const char *msg)
@@ -36,7 +39,7 @@ char* color_assignment(char* username)
         "\033[36m"      // cyan
     };
 
-    int sum = 0;
+    int sum = current_room_id;
 
     /* Sum ACSII values of username chars */
     for (int i = 0; username[i] != '\0'; i++) {
@@ -60,6 +63,8 @@ void* thread_main_recv(void* args)
 
 		buffer[n] = '\0';
 
+        printf("\33[2K\r");
+
 		/* Message format */
 		char* start = strchr(buffer, '[');
 		char* end   = strchr(buffer, ']');
@@ -67,32 +72,22 @@ void* thread_main_recv(void* args)
 		if (start && end && end > start) {
 
             char name[50] = {0};
-
 			int len = end - start - 1;
-			
-            /* Prenvent overflow */
-            if (len > 49) len = 49;
+			strncpy(name, start + 1, (len > 49) ? 49 : len);
 
-			strncpy(name, start + 1, len);
-			name[len] = '\0';
-
-            /* Print colored message */
-			printf("\r%s%s%s\n", color_assignment(name), buffer, RESET);
-		}
-		else {
-            /* System messages */
-			printf("\r%s\n", buffer);
-		}
-
-        /* Reprint input prompt after receiving message */
+            if (strcmp(name, my_username) == 0) {
+                char* msg_content = end + 2;
+                printf("%s%s%s\n", msg_content);
+            } else {
+                printf("%s%s%s\n", color_assignment(name), buffer, RESET);
+            }
+		} else {
+            printf("%s\n", buffer);
+        }
         printf("Please enter the message: ");
         fflush(stdout);
-	}
-
-    /* If recv fails server disconnects */
-    printf("\nDisconnected\n");
+    }
     exit(0);
-	
 }
 
 /* Reads user input and sends it to server */
@@ -105,10 +100,6 @@ void* thread_main_send(void* args)
 
 	while (1) {
 		
-        /* Prompt user for message */
-		printf("\nPlease enter the message: ");
-        fflush(stdout);
-		
         /* Read input from user */
 		if (fgets(buffer, 255, stdin) == NULL) break;
 
@@ -116,10 +107,14 @@ void* thread_main_send(void* args)
         buffer[strcspn(buffer, "\n")] = '\0';
 
         /* Exit if empty input */
-		if (strlen(buffer) <= 1) break;
+		if (strlen(buffer) == 0) break;
 
         /* Send message to server */
 		if (send(sockfd, buffer, strlen(buffer), 0) < 0) break;
+
+        /* Prompt user for message */
+        printf("Please enter the message: ");
+        fflush(stdout);
 	}
 
 	return NULL;
@@ -153,6 +148,10 @@ int main(int argc, char *argv[])
 
     /* Send username to server */
     send(sockfd, username, strlen(username), 0);
+
+    if (strcmp(argv[2], "new") != 0) {
+        current_room_id = atoi(argv[2]);
+    }
     /* Small delay to ensure ordering of messages*/
     sleep(1);
     /* Send room request */
