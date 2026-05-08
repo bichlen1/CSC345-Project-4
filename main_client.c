@@ -62,9 +62,9 @@ char* color_assignment(char* username)
     int sum = current_room_id;
 
     /* Sum ACSII values of username chars */
-    for (int i = 0; username[i] != '\0'; i++) {
-        sum += username[i];
-    }
+    // for (int i = 0; username[i] != '\0'; i++) {
+    //     sum += username[i];
+    // }
 
     /* Pick a color based on modulo */
 <<<<<<< HEAD
@@ -80,7 +80,7 @@ char* color_assignment(char* username)
 	if (user_count < 10){	//new user
 			strcpy(user_info[user_count].my_username, username);
 
-			user_info[user_count].color_index = user_count % 6;	//randomly assign color
+			user_info[user_count].color_index = (sum + user_count) % 6;	//randomly assign color
 			char* assigned_color = colors[user_info[user_count].color_index];
 
 			user_count++;
