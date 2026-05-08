@@ -35,8 +35,13 @@ char* color_assignment(char* username)
         "\033[32m",     // green
         "\033[33m",     // yellow
         "\033[34m",     // blue
+<<<<<<< HEAD
         "\033[35m",     // magenta
         "\033[36m"      // cyan
+=======
+		"\033[0:35m",   // purple
+		"\033[1;35m",   // pink
+>>>>>>> 0b83076 (fixing color output (not complete))
     };
 
     int sum = current_room_id;
@@ -62,6 +67,7 @@ void* thread_main_recv(void* args)
 	while ((n = recv(sockfd, buffer, 1023, 0)) > 0) {
 
 		buffer[n] = '\0';
+		char username[50];
 
         printf("\33[2K\r");
 
@@ -75,19 +81,13 @@ void* thread_main_recv(void* args)
 			int len = end - start - 1;
 			strncpy(name, start + 1, (len > 49) ? 49 : len);
 
-            if (strcmp(name, my_username) == 0) {
-                char* msg_content = end + 2;
-                printf("%s%s%s\n", msg_content);
-            } else {
-                printf("%s%s%s\n", color_assignment(name), buffer, RESET);
-            }
-		} else {
-            printf("%s\n", buffer);
-        }
-        printf("Please enter the message: ");
-        fflush(stdout);
-    }
-    exit(0);
+        // if (sscanf(buffer, "[%49[^]]", username) == 1) {
+        //     printf("%s%s%s\n", color_assignment(username), buffer, RESET);
+        // } else {
+        //     printf("%s\n", buffer);
+        // }
+	}
+	return NULL;
 }
 
 /* Reads user input and sends it to server */
@@ -122,12 +122,12 @@ void* thread_main_send(void* args)
 
 int main(int argc, char *argv[])
 {
-    if (argc < 3) {
-        fprintf(stderr, "Usage: %s <IP> <room_number/new>\n", argv[0]);
-        exit(1);
-    }
-	
-    /* Create socket */
+
+	printf("CLIENT RUNNING\n");	//test
+	fflush(stdout); //test
+
+	if (argc < 2) error("Please specify hostname");
+
 	int sockfd = socket(AF_INET, SOCK_STREAM, 0);
 
 	struct sockaddr_in serv_addr;
@@ -144,7 +144,15 @@ int main(int argc, char *argv[])
     /* Username input asking "What is your name? "*/
     char username[50];
     printf("What is your name? ");
-    fgets(username, 50, stdin);
+
+	while(1){
+	
+	fflush(stdout);	//test
+
+    fgets(username, sizeof(username), stdin);
+
+
+    username[strcspn(username, "\n")] = '\0';
 
     /* Send username to server */
     send(sockfd, username, strlen(username), 0);
@@ -175,6 +183,7 @@ int main(int argc, char *argv[])
 	pthread_join(tid1, NULL);
     /* Close socket when done */
 	close(sockfd);
-    
+	}
+
 	return 0;
 }
