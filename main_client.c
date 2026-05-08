@@ -12,7 +12,17 @@
 #define PORT_NUM 44445          //Server port number
 #define RESET   "\033[0m"       // Reset color
 
+<<<<<<< HEAD
 char my_username[50];
+=======
+struct user_info_s{
+	char my_username[50];
+	int color_index;
+};
+
+struct user_info_s user_info[10];
+int user_count = 0;
+>>>>>>> 094f5d6 (fixed color output)
 int current_room_id = 0;
 
 /* Error handling */
@@ -36,12 +46,17 @@ char* color_assignment(char* username)
         "\033[33m",     // yellow
         "\033[34m",     // blue
 <<<<<<< HEAD
+<<<<<<< HEAD
         "\033[35m",     // magenta
         "\033[36m"      // cyan
 =======
 		"\033[0:35m",   // purple
 		"\033[1;35m",   // pink
 >>>>>>> 0b83076 (fixing color output (not complete))
+=======
+        "\033[35m",     // magenta
+        "\033[36m"      // cyan
+>>>>>>> 094f5d6 (fixed color output)
     };
 
     int sum = current_room_id;
@@ -52,7 +67,32 @@ char* color_assignment(char* username)
     }
 
     /* Pick a color based on modulo */
+<<<<<<< HEAD
     return colors[sum % 6];
+=======
+	for(int i = 0; i < user_count; ++i){
+		if(strcmp(username, user_info[i].my_username) == 0){	//existing user
+			return colors[user_info[i].color_index];
+		}
+
+	}
+
+	if (user_count < 10){	//new user
+			strcpy(user_info[user_count].my_username, username);
+
+			user_info[user_count].color_index = user_count % 6;	//randomly assign color
+			char* assigned_color = colors[user_info[user_count].color_index];
+
+			user_count++;
+
+			return assigned_color;
+
+		}
+
+	return "\033[0m"; 
+	
+    
+>>>>>>> 094f5d6 (fixed color output)
 }
 
 /* Recieves message and prints to terminal */
@@ -63,17 +103,23 @@ void* thread_main_recv(void* args)
 
 	char buffer[1024];
 	int n;
+	int count;
 
 	while ((n = recv(sockfd, buffer, 1023, 0)) > 0) {
 
+<<<<<<< HEAD
+	while ((n = recv(sockfd, buffer, 1023, 0)) > 0) {
+
+=======
+>>>>>>> 094f5d6 (fixed color output)
 		buffer[n] = '\0';
-		char username[50];
 
         printf("\33[2K\r");
 
 		/* Message format */
 		char* start = strchr(buffer, '[');
 		char* end   = strchr(buffer, ']');
+<<<<<<< HEAD
 
 		if (start && end && end > start) {
 
@@ -88,6 +134,31 @@ void* thread_main_recv(void* args)
         // }
 	}
 	return NULL;
+=======
+
+		if (start && end && end > start) {
+
+				//extracts name 
+            char name[50] = {0};	
+			int len = end - start - 1;
+			strncpy(name, start + 1, (len > 49) ? 49 : len);
+
+            if (strcmp(name, user_info[count].my_username) == 0) {
+                char* msg_content = end + 2;
+            } else {
+		
+                printf("%s%s%s\n", color_assignment(name), buffer, RESET);
+            }
+		} else {
+            printf("%s\n", buffer);
+        }
+        printf("Please enter the message: ");
+        fflush(stdout);
+
+		count++;
+    }
+    exit(0);
+>>>>>>> 094f5d6 (fixed color output)
 }
 
 /* Reads user input and sends it to server */
@@ -122,12 +193,12 @@ void* thread_main_send(void* args)
 
 int main(int argc, char *argv[])
 {
-
-	printf("CLIENT RUNNING\n");	//test
-	fflush(stdout); //test
-
-	if (argc < 2) error("Please specify hostname");
-
+    if (argc < 3) {
+        fprintf(stderr, "Usage: %s <IP> <room_number/new>\n", argv[0]);
+        exit(1);
+    }
+	
+    /* Create socket */
 	int sockfd = socket(AF_INET, SOCK_STREAM, 0);
 
 	struct sockaddr_in serv_addr;
@@ -144,7 +215,9 @@ int main(int argc, char *argv[])
     /* Username input asking "What is your name? "*/
     char username[50];
     printf("What is your name? ");
+    fgets(username, 50, stdin);
 
+<<<<<<< HEAD
 	while(1){
 	
 	fflush(stdout);	//test
@@ -154,6 +227,8 @@ int main(int argc, char *argv[])
 
     username[strcspn(username, "\n")] = '\0';
 
+=======
+>>>>>>> 094f5d6 (fixed color output)
     /* Send username to server */
     send(sockfd, username, strlen(username), 0);
 
@@ -183,7 +258,6 @@ int main(int argc, char *argv[])
 	pthread_join(tid1, NULL);
     /* Close socket when done */
 	close(sockfd);
-	}
-
+    
 	return 0;
 }
